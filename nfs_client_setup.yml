@@ -1,0 +1,39 @@
+---
+- name: Ensure NFS is installed and configured
+  hosts: all
+  become: yes
+  vars:
+    nfs_share: "192.168.1.100:/exported/path"  # Replace with your NFS server and share path
+    mount_point: "/mnt/nfs_share"              # Replace with your desired mount point
+
+  tasks:
+    - name: Check if nfs-utils is installed
+      shell: rpm -q nfs-utils
+      register: nfs_utils_check
+      ignore_errors: true
+
+    - name: Install nfs-utils if not present
+      yum:
+        name: nfs-utils
+        state: present
+      when: nfs_utils_check.rc != 0
+
+    - name: Create mount point directory
+      file:
+        path: "{{ mount_point }}"
+        state: directory
+
+    - name: Mount the NFS share
+      mount:
+        src: "{{ nfs_share }}"
+        path: "{{ mount_point }}"
+        fstype: nfs
+        state: mounted
+
+    - name: Ensure the NFS share is configured in fstab
+      mount:
+        src: "{{ nfs_share }}"
+        path: "{{ mount_point }}"
+        fstype: nfs
+        opts: defaults
+        state: present
